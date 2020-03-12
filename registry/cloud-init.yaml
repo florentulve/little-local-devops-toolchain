@@ -1,0 +1,6 @@
+package_update: true
+
+packages:
+ - docker.io
+ 
+manage_etc_hosts: "localhost"

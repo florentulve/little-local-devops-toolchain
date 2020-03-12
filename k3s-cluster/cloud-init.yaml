@@ -1,0 +1,8 @@
+package_update: true
+
+packages:
+ - curl
+ - jq
+ - yq
+ 
+manage_etc_hosts: "localhost"

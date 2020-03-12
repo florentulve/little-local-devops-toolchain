@@ -1,0 +1,60 @@
+# second steps
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APPLICATION_NAME}
+  #namespace: ${NAMESPACE}
+spec:
+  selector:
+    app: ${APPLICATION_NAME}
+  ports:
+    - port: ${EXPOSED_PORT}
+      targetPort: ${CONTAINER_PORT}
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APPLICATION_NAME}
+  #namespace: ${NAMESPACE}
+spec:
+  #replicas: ${REPLICAS}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APPLICATION_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      containers:
+        - name: ${APPLICATION_NAME}
+          image: ${IMAGE}
+          ports:
+            - containerPort: ${CONTAINER_PORT}
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "1"
+              memory: "128Mi"
+            requests:
+              cpu: "1"
+              memory: "128Mi"
+---
+# Ingress
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ${APPLICATION_NAME}
+  #namespace: ${NAMESPACE}
+spec:
+  rules:
+    - host: ${HOST}
+      http:
+        paths:
+          - backend:
+              serviceName: ${APPLICATION_NAME}
+              servicePort: ${EXPOSED_PORT}

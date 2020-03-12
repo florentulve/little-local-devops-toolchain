@@ -1,0 +1,65 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  REGISTRY: "little-registry.test:5000"
+  DOCKER_USER: "little-registry.test:5000"
+  
+#----------------------------
+# Build Docker image
+#----------------------------
+build:
+  image:
+    name: ${REGISTRY}/gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  stage: build
+  script: |
+    IMAGE_NAME="${CI_PROJECT_NAME}-img"
+    TAG="${CI_COMMIT_SHORT_SHA}"
+    DOCKER_USER="${DOCKER_USER}"
+    IMAGE="${DOCKER_USER}/${IMAGE_NAME}:${TAG}"
+
+    echo '{"auths":{"${REGISTRY}":{"username":"","password":""}}}'  > /kaniko/.docker/config.json
+    cat /kaniko/.docker/config.json
+    /kaniko/executor \
+    --context $CI_PROJECT_DIR \
+    --dockerfile $CI_PROJECT_DIR/Dockerfile \
+    --destination ${IMAGE} \
+    --insecure --skip-tls-verify --insecure-pull
+    
+#----------------------------
+# Deploy to production...
+#----------------------------
+# create a CI/CD variable named KUBECONFIG (as file)
+# add the content of /etc/rancher/k3s/k3s.yaml to KUBECONFIG
+# create a CI/CD variable named CLUSTER_IP (value is the IP of the kube cluster)
+deploy:
+  stage: deploy
+  image: ${REGISTRY}/k33g/k3g.utilities:1.0.0
+  only:
+    - master
+  environment:
+    name: production/${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}
+    url: http://${CI_PROJECT_NAME}.${CI_COMMIT_REF_SLUG}.${CLUSTER_IP}.nip.io
+  script: |
+    export CONTAINER_PORT=${CONTAINER_PORT:-8080}
+    export EXPOSED_PORT=${EXPOSED_PORT:-80}
+    export APPLICATION_NAME=${CI_PROJECT_NAME}
+    export NAMESPACE="default"
+    export TAG=${CI_COMMIT_SHORT_SHA}
+    export IMAGE_NAME="${CI_PROJECT_NAME}-img"
+    export DOCKER_USER="${DOCKER_USER}"
+    export IMAGE=${DOCKER_USER}/${IMAGE_NAME}:${TAG}
+    export CLUSTER_IP="${CLUSTER_IP}"
+    export BRANCH=${CI_COMMIT_REF_SLUG}
+    export HOST="${APPLICATION_NAME}.${BRANCH}.${CLUSTER_IP}.nip.io"
+    echo "$HOST"
+    envsubst < ./kube/deploy.template.yaml > ./kube/deploy.${TAG}.yaml
+    cat ./kube/deploy.${TAG}.yaml
+
+    kubectl apply -f ./kube/deploy.${TAG}.yaml -n ${NAMESPACE}
+    echo "😃🌍 http://${HOST}"
+    echo "✋ perhaps you need add 1.1.1.1 in your DNS"
+
+

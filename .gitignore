@@ -1,0 +1,14 @@
+.vscode
+simple-vm
+k3s-cluster/config/k3s.yaml
+k3s-cluster/coredns/coredns.patch.yaml
+k3s-cluster/coredns/coredns.yaml
+k3s-cluster/secrets/CA.txt
+k3s-cluster/secrets/TOKEN.txt
+k3s-cluster/workspace/*.config
+
+gitlab/workspace/*.config
+
+registry/workspace/*.config
+registry/workspace/*.json
+registry/workspace/*.yaml
