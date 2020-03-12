@@ -1,40 +1,40 @@
 # Little Local DevOps ToolChain
-
 First, here is the context: I'm working at GitLab as Technical Account Manager (my duty is to help the customers and make the glue between them and GitLab). To understand things, I need to try these things "in real". So, I remember my first task when I started at GitLab; I decided to install GitLab inside a Virtual Machine, and now for two years, I learned a lot of new things, and my use cases and demos became more complicated 😉.
 
 My last use case is the following:
-I need a toolchain that runs locally (on my laptop)
-I want to deploy web-applications from GitLab CI to Kubernetes
+- I need a toolchain that runs locally (on my laptop)
+- I want to deploy web-applications from GitLab CI to Kubernetes
+
 The main components of my little toolchain are:
-a private insecure Docker registry in a VM
-a Kubernetes cluster (mono node) in a VM
-a GitLab instance in a VM
-a GitLab Runner deployed on Kubernetes (aka Kubernetes executor)
-I will use K3S from Rancher as Kubernetes distribution, and Multipass from Canonical to create the virtual machines.
+- a private insecure Docker registry in a VM
+- a Kubernetes cluster (mono node) in a VM
+- a GitLab instance in a VM
+- a GitLab Runner deployed on Kubernetes (aka Kubernetes executor)
+- I will use K3S from Rancher as Kubernetes distribution, and Multipass from Canonical to create the virtual machines.
 
 My target workflow of CI/CD will be the following:
-the source code of the web-application is on GitLab
-when I commit something on the project:
-the build of the image container is done with Kaniko
-on the build is done, the application is deployed on K3S thanks to kubectl (and GitLab CI of course and the Kubernetes executor)
-I scripted all the steps and will explain how to use all scripts, but first of all, these are the requirements to be able to run the scrips:
-You need to install:
-Multipass
-yq (like jq but for YAML)
-kubectl (CLI of Kubernetes)
-git
-Docker
-K9S (optional but extremely useful)
+- The source code of the web-application is on GitLab
+- When I commit something on the project:
+- The build of the image container is done with Kaniko (to avoid DIND)
+- Once the build is done, the application is deployed on K3S thanks to kubectl (and GitLab CI of course and the Kubernetes executor)
 
-👋 Remarks: I did all my test on OSX (theoretically it should work on Linux, and I plan to test it on Linux shortly. About Windows ... 🤔 nothing planned yet - sorry for that)
+I scripted all the steps and will explain how to use all scripts, but first of all, these are the requirements to be able to run the scrips. You need to install:
+- Multipass (https://multipass.run/)
+- yq (like jq but for YAML) (https://github.com/mikefarah/yq)
+- kubectl (CLI of Kubernetes) (https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- git
+- Docker
+- K9S (optional but extremely useful) (https://github.com/derailed/k9s)
 
-🍻 A big thanks to [Louis Tournayre](https://twitter.com/_louidji), who taught me a lot of things about Kubernetes.
+👋 **Remarks**: I did all my test on OSX (theoretically it should work on Linux, and I plan to test it on Linux shortly. About Windows ... 🤔 nothing planned yet - sorry for that)
 
-Now, time to start.
+🍻 **A big thanks to [Louis Tournayre](https://twitter.com/_louidji)**, who taught me a lot of things about Kubernetes.
+
+Now, it's time to start.
 
 ## Clone the repository "little local devosp toolchain"
 
-`git@gitlab.com:k33g/little-local-devops-toolchain.git`
+The first step id to git clone this project: https://gitlab.com/k33g/little-local-devops-toolchain (`git clone git@gitlab.com:k33g/little-local-devops-toolchain.git`)
 
 ## Create the Docker Registry
 
@@ -161,22 +161,24 @@ Now, it's time to set up the Kubernetes integration.
 
 Return to this directory: `k3s-cluster/gitlab-integration` and:
 
-run `./01-admin-account.sh` to create a GitLab account inside the cluster
-run `./02-get-certificate-token.sh` to generate the certificate and the token you will need to declare the cluster inside GitLab. The two files will be generated in the sub-directory `/secrets`
-run `./03-add-gitlab-host-to-cluster.sh` to add the GitLab entry to the Cluster's VM
-run `./04-patch-core-dns.sh` to "patch" again the configmap of CoreDNS (making GitLab reachable from the cluster)
+- run `./01-admin-account.sh` to create a GitLab account inside the cluster
+- run `./02-get-certificate-token.sh` to generate the certificate and the token you will need to declare the cluster inside GitLab. The two files will be generated in the sub-directory `/secrets`
+- run `./03-add-gitlab-host-to-cluster.sh` to add the GitLab entry to the Cluster's VM
+- run `./04-patch-core-dns.sh` to "patch" again the configmap of CoreDNS (making GitLab reachable from the cluster)
 
 Now, return to http://little-gitlab.test/, and in the admin section go to the Kubernetes section (`/admin/clusters`), click on **Add Kubernetes cluster**, choose **Add existing cluster** and fill the fields like that:
-Kubernetes cluster name: little-cluster (or what you want)
-API URL: https://192.168.64.27:6443 (you can find the appropriate value in the `k3s.yaml` file
-CA Certificate: use the content of `secrets/CA.txt`
-Service Token: use the content of `secrets/TOKEN.txt`
+
+- **Kubernetes cluster name**: little-cluster (or what you want)
+- **API URL**: https://192.168.64.27:6443 (you can find the appropriate value in the `k3s.yaml` file
+- **CA Certificate**: use the content of `secrets/CA.txt`
+- **Service Token**: use the content of `secrets/TOKEN.txt`
+
 And then, click on **"Add Kubernetes cluster"**
 
 On the next screen, 
-Click on **"Install"** at the **"Helm Tiller"** section (you can follow the progress from K9S console)
-Once, Helm Tiller installed, click on **"Install"** at the **"GitLab Runner"** section (you can follow the progress from K9S console)
-Once the installation of the runner is finished, you can check if the runner is correctly registered by reaching the runner's section of the administration console (/admin/runners).
+- Click on **"Install"** at the **"Helm Tiller"** section (you can follow the progress from K9S console)
+- Once, Helm Tiller installed, click on **"Install"** at the **"GitLab Runner"** section (you can follow the progress from K9S console)
+- Once the installation of the runner is finished, you can check if the runner is correctly registered by reaching the runner's section of the administration console (/admin/runners).
 
 Now, you're almost ready to deploy from Kubernetes from GitLab.
 
@@ -200,14 +202,15 @@ Now, we are ready to create and deploy our first project.
 
 ## New project
 
-Use the project you can find in `webapp-sample`. 
-Be sure to use the correct registry (check the Dockerfile too)
+- Use the project you can find in `webapp-sample`. 
+- Be sure to use the correct registry (check the Dockerfile too)
 
 You need to create 2 CI Variables in your project (or in the group of your project):
 
-`KUBECONFIG`, define it as a file and use the content of `k3s.yaml` to fill the field
-`CLUSTER_IP`: it's the IP of the Cluster's VM
+- `KUBECONFIG`, define it as a file and use the content of `k3s.yaml` to fill the field
+- `CLUSTER_IP`: it's the IP of the Cluster's VM
+
 Launch the CI script, and soon you will be able to reach your webapp with an URL like this one: http://hello-world.master.192.168.64.27.nip.io/ 
 (`<project-name>.<branch-name>.<cluster IP>.nip.io`)
 
-That's all 🎉
+That's all 🎉 (for the moment) 😉
