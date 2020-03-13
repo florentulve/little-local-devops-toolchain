@@ -126,7 +126,7 @@ mirrors:
 
 Then, the script will install K3S inside the VM. After that, the script will copy the configuration file of the cluster to `/config/k3s.yaml`. This file is essential, and you will use it with the `kubectl` CLI to communicate with the cluster.
 
-Last but not least: every (or some) pod(s) of the cluster should be able to connect to the external registry. Then you need to declare the IP and the domain name to CoreDNS. But there is an annoying bug, every time the cluster re-start, CoreDNS come back with the default settings 😡.
+Last but not least: every (or some) pod(s) of the cluster should be able to connect to the external registry. Then you need to declare the IP and the domain name to CoreDNS. But there is an annoying bug, every time the cluster re-start, CoreDNS come back with the default settings 😡. See [https://github.com/rancher/k3s/pull/743](https://github.com/rancher/k3s/pull/743)
 It's why I created a script (used when creating and at every start) that will get the **configmap** of CoreDNS and update it with the needed information and will recreate the CoreDNS pod.
 
 If you want to add other services, add an entry to `/coredns/coredns.patch.yaml` after the registry entry (this file is generated one time at the VM creation) and restart the cluster.
