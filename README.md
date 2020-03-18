@@ -434,6 +434,8 @@ deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/s
 deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/tslint:2" "analyzers/tslint:2"
 ```
 
+### Update the .gitlab-ci.yml` file
+
 And just update your `.gitlab-ci.yml` file like that:
 
 - add a stage `😷secure`
