@@ -391,4 +391,95 @@ Commit and push an update of your application on `master` branch but on a featur
 
 You will be able to reach your webapp with an URL like this one: http://hello-world.master.192.168.64.27.nip.io/  (`<project-name>.<branch-name>.<cluster IP>.nip.io`)
 
+## How to use SAST Offline with our local toolchain
+
+We have all the necessary tools to operate [Secure scanners offline](https://docs.gitlab.com/ee/user/application_security/offline_deployments/). Let's do it with SAST (the offical documentation is [here](https://docs.gitlab.com/ee/user/application_security/sast/index.html#gitlab-sast-in-an-offline-air-gapped-installation)):
+
+> don't forget to change the values with your own values of course 😉
+
+### First 
+
+Pull the default SAST analyzer images from `registry.gitlab.com` to your local private registry:
+
+```bash
+# get the information of the local registry
+# content of registry.config:
+# registry_name="little-registry";
+# registry_domain="little-registry.test";
+# registry_port=5000;
+eval $(cat registry.config)
+
+function deploy_to_registry() {
+  image_name_to_pull=$1
+  image_name_to_push=$2
+  docker pull ${image_name_to_pull}
+  docker tag ${image_name_to_pull} ${registry_domain}:5000/${image_name_to_push}
+  docker push ${registry_domain}:5000/${image_name_to_push}
+}
+
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/bandit:2" "analyzers/bandit:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/brakeman:2" "analyzers/brakeman:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/eslint:2" "analyzers/eslint:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/flawfinder:2" "analyzers/flawfinder:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/go-ast-scanner:2" "analyzers/go-ast-scanner:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/gosec:2" "analyzers/gosec:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/kubesec:2" "analyzers/kubesec:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/nodejs-scan:2" "analyzers/nodejs-scan:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/phpcs-security-audit:2" "analyzers/phpcs-security-audit:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/pmd-apex:2" "analyzers/pmd-apex:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/secrets:2" "analyzers/secrets:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/security-code-scan:2" "analyzers/security-code-scan:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/sobelow:2" "analyzers/sobelow:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/spotbugs:2" "analyzers/spotbugs:2"
+deploy_to_registry "registry.gitlab.com/gitlab-org/security-products/analyzers/tslint:2" "analyzers/tslint:2"
+```
+
+And just update your `.gitlab-ci.yml` file like that:
+
+- add a stage `😷secure`
+- import `SAST.gitlab-ci.yml`
+- add a `sast` job
+
+```yaml
+stages:
+  - 😷secure
+  - 🐳build
+  - 🚢deploy
+
+variables:
+  REGISTRY: "little-registry.test:5000"
+  DOCKER_USER: "little-registry.test:5000"
+
+#----------------------------
+# Secure
+#----------------------------
+include:
+  - template: SAST.gitlab-ci.yml
+  
+sast:
+  stage: 😷secure
+  variables:
+    SAST_ANALYZER_IMAGE_PREFIX: "little-registry.test:5000/analyzers"
+    SAST_DISABLE_DIND: "true"
+    CI_DEBUG_TRACE: "true"
+```
+
+> 👋 I added a sample to the repository, look at `webapp-sample-secure`
+
+Now add vulenerabilities to your source code, for example:
+
+```javascript
+const AWS_ID = "AKIAIOSFODNN7EXAMPLE"
+const AWS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+```
+
+Commit dnd create a **Merge Request**. Your MR will look like that:
+
+![alt k9s](./merge-request.png)
+
+And your new pipeline:
+
+![alt k9s](./pipeline.png)
+
+
 That's all 🎉 (for the moment) 😉
