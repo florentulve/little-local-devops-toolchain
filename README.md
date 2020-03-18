@@ -381,7 +381,7 @@ variables:
     name: preview/${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}
     action: stop
   script:
-    - kubectl delete deploy,service,ingress ${CI_PROJECT_NAME} --namespace=${KUBE_NAMESPACE}
+    - kubectl delete namespace ${KUBE_NAMESPACE}
 ```
 
 Commit and push an update of your application on `master` branch but on a feature branch too, and you'll get all your environments in the dashboard:
