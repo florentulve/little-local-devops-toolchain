@@ -2,12 +2,26 @@
 # add the content of /etc/rancher/k3s/k3s.yaml to KUBECONFIG
 # create a CI/CD variable named CLUSTER_IP (value is the IP of the kube cluster)
 stages:
+  - 😷secure
   - 🐳build
   - 🚢deploy
 
 variables:
   REGISTRY: "little-registry.test:5000"
   DOCKER_USER: "little-registry.test:5000"
+
+#----------------------------
+# Secure
+#----------------------------
+include:
+  - template: SAST.gitlab-ci.yml
+  
+sast:
+  stage: 😷secure
+  variables:
+    SAST_ANALYZER_IMAGE_PREFIX: "little-registry.test:5000/analyzers"
+    SAST_DISABLE_DIND: "true"
+    CI_DEBUG_TRACE: "true"
 
 #----------------------------
 # Build Docker image
@@ -117,4 +131,3 @@ variables:
     action: stop
   script:
     - kubectl delete deploy,service,ingress ${CI_PROJECT_NAME} --namespace=${KUBE_NAMESPACE}
-    
