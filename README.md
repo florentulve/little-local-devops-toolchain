@@ -475,7 +475,7 @@ const AWS_ID = "AKIAIOSFODNN7EXAMPLE"
 const AWS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 ```
 
-Commit dnd create a **Merge Request**. Your MR will look like that:
+Commit, then create a **Merge Request**. Your MR will look like that:
 
 ![alt k9s](./merge-request.png)
 
