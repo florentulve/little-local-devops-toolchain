@@ -483,5 +483,118 @@ And your new pipeline:
 
 ![alt k9s](./pipeline.png)
 
+## Use DNSMasq instead nip.io
+
+Last time, the service [nip.io](nip.io) was down, so I searched an alternative. Some friends pointed me **DNSMasq**. I struggled several days with it, but finally today, I succeeded, and in fact, it's simple (but when your skills are not network oriented, the learning could be hard 😉).
+
+My use case: right now, the url of my services is build like that: `http://<service-name><branch-name>.192.168.64.27.nip.io` (where `192.168.64.27` is the IP address of my K3S cluster).
+
+Now, I would like something like that: `http://<service-name><branch-name>.demo.g33k`
+
+### Install and configuration
+
+First, install **DNSMasq** (I'm on OSX, but I'm sure my 🐧 friends will adapt this):
+
+```bash
+brew install dnsmasq
+```
+
+Next, create a file like this one below, with an entry corresponding to your "wildcard" DNS and the IP address of the cluster:
+
+```bash
+echo "address=/.demo.g33k/192.168.64.27" > /usr/local/etc/dnsmasq.d/development.conf
+```
+
+Then, update the network settings of your Mac, adding  `192.168.64.17` (and `127.0.0.1`) as DNS:
+
+![alt k9s](./osx-dns.png)
+
+Click on **Ok** then on **Apply**
+
+Restart **DNSMasq**:
+
+```bash
+sudo brew services restart dnsmasq
+```
+
+Now, create a **"resolver"** linked to your domain:
+
+```bash
+sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/demo.g33k'
+```
+
+Check the routing:
+
+```bash
+dig hey.demo.g33k @127.0.0.1
+```
+
+You should get something like this:
+
+```
+; <<>> DiG 9.10.6 <<>> hey.demo.k33g @127.0.0.1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 7844
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;hey.demo.k33g.              IN      A
+
+;; ANSWER SECTION:
+hey.demo.k33g.       0       IN      A       192.168.64.27
+
+;; Query time: 0 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Mon Mar 23 16:02:39 CET 2020
+;; MSG SIZE  rcvd: 61
+```
+
+Check the ping:
+
+```bash
+ping hey.demo.k33g
+```
+
+You should get something like that:
+
+```
+PING hey.demo.g33k (192.168.64.27): 56 data bytes
+64 bytes from 192.168.64.27: icmp_seq=0 ttl=64 time=0.232 ms
+64 bytes from 192.168.64.27: icmp_seq=1 ttl=64 time=0.324 ms
+```
+
+> Of course, you have started the K3S cluster
+
+So, now you need to change something with your deployment (in `.gitlab-ci.yml`):
+
+Replace:
+
+```bash
+export HOST="${APPLICATION_NAME}.${BRANCH}.${CLUSTER_IP}.nip.io"
+```
+
+by: 
+
+```bash
+export HOST="${APPLICATION_NAME}.${BRANCH}.demo.g33k"
+```
+
+And the environment url:
+
+```bash
+url: http://${CI_PROJECT_NAME}.${CI_COMMIT_REF_SLUG}.${CLUSTER_IP}.nip.io
+```
+
+by:
+
+```bash
+url: http://${CI_PROJECT_NAME}.${CI_COMMIT_REF_SLUG}.demo.g33k
+```
+
+And now, you just had to restart your CI.
+
 
 That's all 🎉 (for the moment) 😉
